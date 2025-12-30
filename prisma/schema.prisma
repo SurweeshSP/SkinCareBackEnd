@@ -37,6 +37,9 @@ model Analysis {
   status        String    @default("PROCESSING")
   createdAt     DateTime  @default(now())
   completedAt   DateTime?
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
   @@index([userId])
 }
 
