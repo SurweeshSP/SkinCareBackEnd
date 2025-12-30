@@ -57,6 +57,7 @@ RUN npm install --only=production
 # Copy built assets and prisma
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/docs ./docs
 # Copy Python scripts and models (ensure src is available if script is in src)
 # The controller spawns 'src/controllers/skinanalysisController.py', so we need it.
 # We'll copy the whole src folder to be safe or just the needed scripts. 
