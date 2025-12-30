@@ -51,6 +51,54 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Debug Route: Test S3 Connection
+app.get('/api/test/s3', async (req, res) => {
+  try {
+    const { S3Client, ListObjectsV2Command, PutObjectCommand } = require('@aws-sdk/client-s3');
+    const s3 = new S3Client({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      }
+    });
+
+    // 1. Check Config
+    const config = {
+      region: process.env.AWS_REGION,
+      bucket: process.env.AWS_BUCKET_NAME,
+      accessKeySuffix: process.env.AWS_ACCESS_KEY_ID ? process.env.AWS_ACCESS_KEY_ID.slice(-4) : 'MISSING'
+    };
+
+    // 2. Test List Permission
+    await s3.send(new ListObjectsV2Command({ Bucket: process.env.AWS_BUCKET_NAME, MaxKeys: 1 }));
+
+    // 3. Test Write Permission
+    const key = `debug_test_${Date.now()}.txt`;
+    await s3.send(new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: key,
+      Body: "Debug upload test"
+    }));
+
+    res.json({
+      success: true,
+      message: 'S3 Connection Verified (Read & Write)',
+      config,
+      testFile: key
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'S3 Check Failed',
+      message: error.message,
+      code: error.code || 'UNKNOWN',
+      requestId: error.$metadata ? error.$metadata.requestId : null
+    });
+  }
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/analyses', analysisRoutes);
