@@ -5,7 +5,7 @@ Dockerfile
 .git
 .gitignore
 README.md
-docs
+
 tests
 dist
 .env
