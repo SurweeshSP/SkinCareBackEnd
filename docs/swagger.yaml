@@ -1,0 +1,62 @@
+# docs/swagger.yaml
+openapi: 3.0.3
+info:
+  title: Skin Analysis
+  version: 1.0.0
+  description: AI-Powered Skin Analysis Backend
+servers:
+  - url: http://localhost:3000/api
+    description: Development
+
+paths:
+  /auth/register:
+    post:
+      summary: Register new user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 6 }
+      responses:
+        '201': { description: User created }
+
+  /auth/login:
+    post:
+      summary: Login user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200': { description: Login successful }
+
+  /analyses/create:
+    post:
+      summary: Create skin analysis
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                imageUrl: { type: string, format: uri }
+                skinType: { type: string, enum: [NORMAL, DRY, OILY, COMBINATION, SENSITIVE] }
+                concerns: { type: array, items: { type: string } }
+      responses:
+        '201': { description: Analysis created }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

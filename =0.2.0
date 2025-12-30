@@ -1,0 +1,2 @@
+Requirement already satisfied: ml_dtypes in c:\users\surwe\appdata\local\programs\python\python310\lib\site-packages (0.2.0)
+Requirement already satisfied: numpy>1.20 in c:\users\surwe\appdata\local\programs\python\python310\lib\site-packages (from ml_dtypes) (1.26.4)

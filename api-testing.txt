@@ -1,0 +1,42 @@
+1. Database Seeding
+I have created a script to verify your database and S3 connectivity by creating a test user and a dummy analysis.
+
+Run the Seed Script
+(I will create this script as scripts/seed.js next. You will run it with node scripts/seed.js)
+
+2. Postman / Curl Test Links (Localhost)
+Use these URLs in Postman. Use http, not https, for localhost.
+
+Auth
+    Register: 
+    POST http://localhost:3000/api/auth/register
+    Body: 
+        {"email": "test@example.com", "password": "password123", "firstName": "Test", "lastName": "User"}
+
+    Login: 
+    POST http://localhost:3000/api/auth/login
+    Body: 
+        {"email": "test@example.com", "password": "password123"}
+
+    Save the token from the response!
+
+Analyses (Requires Header Authorization: Bearer <TOKEN>)
+Create: 
+    POST http://localhost:3000/api/analyses/create
+    Body: 
+        {"imageUrl": "test_image_key"}
+
+    Get All: 
+    GET http://localhost:3000/api/analyses/history
+
+    Users (Requires Header Authorization: Bearer <TOKEN>)
+    Profile: 
+    GET http://localhost:3000/api/users/profile
+
+    3. Findings from Code Review
+        Dependencies: All present (@aws-sdk/client-s3, @prisma/client, express).
+            Prisma Schema: Defines User, Analysis, SkincareRoutine.
+            Controllers: Mapped correctly.
+            Potential Issue: 
+                RoutineController
+                expects req.body.steps. If frontend sends an Array, it might crash because Prisma expects a String. Fix: Ensure frontend sends JSON string or backend stringifies it.

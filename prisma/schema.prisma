@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String?
+  firstName    String?
+  lastName     String?
+  skinType     String   @default("NORMAL")  // String instead of enum
+  skinConcerns String?  // Single string (JSON serialized)
+  allergies    String?  // Single string (JSON serialized)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  analyses     Analysis[]
+  routines     SkincareRoutine[]
+
+  @@map("users")
+}
+
+model Analysis {
+  id            String   @id @default(cuid())
+  userId        String
+  imageKey      String
+  skinScore     Int?
+  skinType      String?
+  metrics       String?   // JSON
+  conditions    String?   // JSON
+  confidence    String?   // Changed from Float to String
+  status        String    @default("PROCESSING")
+  createdAt     DateTime  @default(now())
+  completedAt   DateTime?
+  @@index([userId])
+}
+
+model SkincareRoutine {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  steps      String?  // JSON as string
+  frequency  String
+  startDate  DateTime @default(now())
+  endDate    DateTime?
+  isActive   Boolean  @default(true)
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("skincare_routines")
+}
+
+model Product {
+  id          String @id @default(cuid())
+  name        String
+  category    String
+  brand       String
+  price       Float
+  imageUrl    String
+  ingredients String?  // JSON as string
+  createdAt   DateTime @default(now())
+
+  @@map("products")
+}
