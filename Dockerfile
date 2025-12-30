@@ -79,5 +79,8 @@ RUN npx prisma generate
 # Expose port
 EXPOSE 3000
 
-# Start command
-CMD ["node", "dist/server.js"]
+# Expose port
+EXPOSE 3000
+
+# Start command: Run DB push to ensure tables exist (SQLite) then start server
+CMD ["sh", "-c", "npx prisma db push && node dist/server.js"]
