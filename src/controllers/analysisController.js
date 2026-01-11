@@ -138,29 +138,94 @@ class AnalysisController {
 
           console.log(`   Confidence (parsed): ${confidenceValue} (${typeof confidenceValue})`);
 
-          // Update analysis with results
-          await prisma.analysis.update({
-            where: { id: analysis.id },
-            data: {
-              status: 'COMPLETED',
-              skinScore: result.skinScore,
-              skinType: result.skinType || skinType,
-              metrics: JSON.stringify(result.scoreBreakdown || result.metrics),
-              conditions: JSON.stringify(result.detectedConditions || []),
-              confidence: confidenceValue, // ✅ Now a proper Float
-              completedAt: new Date()
-            }
-          });
+          // ==================================================================
+          // STEP 2: GENERATE RECOMMENDATIONS
+          // ==================================================================
+          const fs = require('fs');
+          const os = require('os');
 
-          console.log(`✅ Analysis ${analysis.id} completed and saved to database`);
+          try {
+            console.log(`🤖 Generating recommendations for analysis ${analysis.id}`);
+
+            // Write analysis result to temp file for recommendation engine
+            const tempFile = path.join(os.tmpdir(), `analysis-${analysis.id}.json`);
+            fs.writeFileSync(tempFile, JSON.stringify(result));
+
+            const recScript = path.join(__dirname, 'recommendationController.py');
+            const recCommand = `python "${recScript}" --input "${tempFile}"`;
+
+            exec(recCommand, {
+              maxBuffer: 10 * 1024 * 1024,
+              timeout: 60000 // 1 minute timeout
+            }, async (recError, recStdout, recStderr) => {
+
+              // Clean up temp file
+              try { fs.unlinkSync(tempFile); } catch (e) { }
+
+              if (recStderr) console.log('[Rec Engine]', recStderr);
+
+              let recommendations = [];
+
+              if (!recError) {
+                try {
+                  const startMarker = "--- JSON OUTPUT START ---";
+                  const endMarker = "--- JSON OUTPUT END ---";
+                  if (recStdout.includes(startMarker) && recStdout.includes(endMarker)) {
+                    const jsonStr = recStdout.split(startMarker)[1].split(endMarker)[0].trim();
+                    const recResult = JSON.parse(jsonStr);
+                    recommendations = recResult.recommendations?.products || [];
+                    console.log(`✅ Recommendations generated: ${recommendations.length} products`);
+                  }
+                } catch (e) {
+                  console.error('Failed to parse recommendation output:', e);
+                }
+              } else {
+                console.error('Recommendation engine failed:', recError.message);
+              }
+
+              // ==================================================================
+              // STEP 3: SAVE TO DATABASE
+              // ==================================================================
+
+              // Update analysis with results AND recommendations
+              await prisma.analysis.update({
+                where: { id: analysis.id },
+                data: {
+                  status: 'COMPLETED',
+                  skinScore: result.skinScore,
+                  skinType: result.skinType || skinType,
+                  metrics: JSON.stringify(result.scoreBreakdown || result.metrics),
+                  conditions: JSON.stringify(result.detectedConditions || []),
+                  recommendations: JSON.stringify(recommendations), // Save recommendations
+                  confidence: String(confidenceValue),
+                  completedAt: new Date()
+                }
+              });
+
+              console.log(`✅ Analysis ${analysis.id} completed and saved to database`);
+            });
+
+          } catch (recProcessError) {
+            console.error("❌ Failed to spawn recommendation process", recProcessError);
+            // Fallback: save without recommendations
+            await prisma.analysis.update({
+              where: { id: analysis.id },
+              data: {
+                status: 'COMPLETED',
+                skinScore: result.skinScore,
+                skinType: result.skinType || skinType,
+                metrics: JSON.stringify(result.scoreBreakdown || result.metrics),
+                conditions: JSON.stringify(result.detectedConditions || []),
+                confidence: String(confidenceValue),
+                completedAt: new Date()
+              }
+            });
+          }
 
         } catch (parseError) {
           console.error("❌ Failed to parse ML output or update database");
           console.error("Parse error:", parseError.message);
           console.error("Stack:", parseError.stack);
-          console.error("Output length:", stdout.length);
-          console.error("First 500 chars:", stdout.substring(0, 500));
-          console.error("Last 500 chars:", stdout.substring(Math.max(0, stdout.length - 500)));
 
           // Update status to FAILED
           try {
@@ -175,6 +240,7 @@ class AnalysisController {
             console.error('Failed to update analysis status:', dbError);
           }
         }
+
       });
 
     } catch (error) {
@@ -227,7 +293,8 @@ class AnalysisController {
         imageUrl,
         metrics: analysis.metrics ? JSON.parse(analysis.metrics) : null,
         conditions: analysis.conditions ? JSON.parse(analysis.conditions) : [],
-        confidence: analysis.confidence // Already a Float in DB
+        conditions: analysis.conditions ? JSON.parse(analysis.conditions) : [],
+        confidence: analysis.confidence ? parseFloat(analysis.confidence) : null
       };
 
       res.json({
@@ -297,7 +364,8 @@ class AnalysisController {
             imageUrl,
             metrics: analysis.metrics ? JSON.parse(analysis.metrics) : null,
             conditions: analysis.conditions ? JSON.parse(analysis.conditions) : [],
-            confidence: analysis.confidence // Already a Float
+            conditions: analysis.conditions ? JSON.parse(analysis.conditions) : [],
+            confidence: analysis.confidence ? parseFloat(analysis.confidence) : null
           };
         })
       );
@@ -557,7 +625,7 @@ class AnalysisController {
               skinType: result.skinType,
               metrics: JSON.stringify(result.scoreBreakdown || result.metrics),
               conditions: JSON.stringify(result.detectedConditions || []),
-              confidence: confidenceValue, // ✅ Float
+              confidence: String(confidenceValue), // ✅ Float
               completedAt: new Date()
             }
           });

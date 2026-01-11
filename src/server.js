@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const analysisRoutes = require('./routes/analysis');
 const userRoutes = require('./routes/users');
 const routineRoutes = require('./routes/routines');
+const insightsRoutes = require('./routes/insights');
 
 // Swagger
 const swaggerUi = require('swagger-ui-express');
@@ -104,6 +105,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/analyses', analysisRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/routines', routineRoutes);
+app.use('/api/insights', insightsRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // 404 Handler

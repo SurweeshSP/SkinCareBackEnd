@@ -33,6 +33,7 @@ model Analysis {
   skinType      String?
   metrics       String?   // JSON
   conditions    String?   // JSON
+  recommendations String? // JSON: List of recommended products
   confidence    String?   // Changed from Float to String
   status        String    @default("PROCESSING")
   createdAt     DateTime  @default(now())

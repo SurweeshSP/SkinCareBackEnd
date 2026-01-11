@@ -1,12 +1,7 @@
-// Native fetch is verified available in Node v22+
-
 const BASE_URL = 'http://localhost:3000/api';
-
 async function testFlow() {
-    console.log("🚀 Starting API Flow Test...\n");
-
-    // 1. Register
-    console.log("1️⃣  Registering User...");
+    console.log("Starting API Flow Test...\n");
+    console.log("1️ Registering User...");
     const regRes = await fetch(`${BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
